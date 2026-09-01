@@ -1,0 +1,49 @@
+# --- Python ---------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+.Python
+*.so
+
+# --- Virtual environments -----------------------------------------------
+.venv/
+venv/
+env/
+
+# --- Environment / secrets -----------------------------------------------
+.env
+*.env.local
+
+# --- Data / artifacts (local feature store & model registry) -------------
+data/local_store/feature_store/*.parquet
+data/local_store/model_registry/*.joblib
+data/local_store/model_registry/*.keras
+data/local_store/model_registry/*.json
+!data/local_store/**/.gitkeep
+
+# --- Logs -----------------------------------------------------------------
+*.log
+logs/
+
+# --- Testing / coverage -----------------------------------------------
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# --- Notebooks --------------------------------------------------------
+.ipynb_checkpoints/
+
+# --- Editors / OS -----------------------------------------------------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# --- Streamlit ----------------------------------------------------------
+.streamlit/secrets.toml

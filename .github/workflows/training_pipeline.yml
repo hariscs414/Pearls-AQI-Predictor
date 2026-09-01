@@ -1,0 +1,66 @@
+name: Training Pipeline
+
+# Runs the training pipeline daily, per the project brief: fetches features
+# from the feature store, trains + evaluates every candidate model per
+# forecast horizon, registers the best one, and runs a post-training
+# hazard-alert check (posted to Slack if SLACK_WEBHOOK_URL is set). See
+# feature_pipeline.yml for the local-vs-Hopsworks persistence note -- the
+# same choice applies here for the model registry.
+
+on:
+  schedule:
+    - cron: "0 3 * * *" # once a day at 03:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: aqi-pipeline-data
+  cancel-in-progress: false
+
+jobs:
+  run-training-pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -e .
+
+      - name: Run training pipeline
+        env:
+          AQI_DATA_PROVIDER: ${{ vars.AQI_DATA_PROVIDER || 'open_meteo' }}
+          OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
+          FEATURE_STORE_BACKEND: ${{ vars.FEATURE_STORE_BACKEND || 'local' }}
+          HOPSWORKS_API_KEY: ${{ secrets.HOPSWORKS_API_KEY }}
+          HOPSWORKS_PROJECT_NAME: ${{ vars.HOPSWORKS_PROJECT_NAME }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          LOG_LEVEL: INFO
+        run: python scripts/run_training_pipeline.py
+
+      - name: Persist updated model registry back to the repo (local backend only)
+        if: ${{ vars.FEATURE_STORE_BACKEND != 'hopsworks' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f data/local_store/model_registry/*.joblib \
+                     data/local_store/model_registry/*.json \
+                     data/local_store/model_registry/*.csv \
+                     data/local_store/model_registry/training_history.jsonl
+          if git diff --cached --quiet; then
+            echo "No model-registry changes to commit."
+          else
+            git commit -m "chore(models): daily training pipeline update [skip ci]"
+            git pull --rebase --autostash
+            git push
+          fi

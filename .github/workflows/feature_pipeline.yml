@@ -1,0 +1,64 @@
+name: Feature Pipeline
+
+# Runs the feature pipeline every hour, per the project brief. Free-tier
+# friendly by default: with FEATURE_STORE_BACKEND left as "local" (the
+# default), the local Parquet feature store is committed straight back into
+# the repo, so the whole thing works with zero external services or
+# secrets. Set the FEATURE_STORE_BACKEND repository *variable* to
+# "hopsworks" (and the HOPSWORKS_* secrets/variables below) to switch to
+# the fully-managed, "properly serverless" persistence layer instead -- see
+# README.md > Deployment for the tradeoffs.
+
+on:
+  schedule:
+    - cron: "0 * * * *" # every hour, on the hour (UTC)
+  workflow_dispatch: {} # allows manual "Run workflow" from the Actions tab
+
+permissions:
+  contents: write
+
+concurrency:
+  group: aqi-pipeline-data
+  cancel-in-progress: false
+
+jobs:
+  run-feature-pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -e .
+
+      - name: Run feature pipeline
+        env:
+          AQI_DATA_PROVIDER: ${{ vars.AQI_DATA_PROVIDER || 'open_meteo' }}
+          OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
+          FEATURE_STORE_BACKEND: ${{ vars.FEATURE_STORE_BACKEND || 'local' }}
+          HOPSWORKS_API_KEY: ${{ secrets.HOPSWORKS_API_KEY }}
+          HOPSWORKS_PROJECT_NAME: ${{ vars.HOPSWORKS_PROJECT_NAME }}
+          LOG_LEVEL: INFO
+        run: python scripts/run_feature_pipeline.py
+
+      - name: Persist updated feature store back to the repo (local backend only)
+        if: ${{ vars.FEATURE_STORE_BACKEND != 'hopsworks' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f data/local_store/feature_store/*.parquet
+          if git diff --cached --quiet; then
+            echo "No feature-store changes to commit."
+          else
+            git commit -m "chore(data): hourly feature pipeline update [skip ci]"
+            git pull --rebase --autostash
+            git push
+          fi
