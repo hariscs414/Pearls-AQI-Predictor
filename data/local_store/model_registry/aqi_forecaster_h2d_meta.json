@@ -1,11 +1,11 @@
 {
-  "version": "20260926T080643Z",
+  "version": "20260927T084225Z",
   "horizon_days": 2,
-  "model_type": "xgboost",
+  "model_type": "ridge",
   "metrics": {
-    "rmse": 18.603215098341714,
-    "mae": 15.128122227166289,
-    "r2": 0.8622633070677098
+    "rmse": 23.216847827166422,
+    "mae": 16.25164400845476,
+    "r2": 0.7790292216376943
   },
   "feature_columns": [
     "us_aqi_mean",
@@ -48,5 +48,5 @@
     "us_aqi_mean_rollstd_3d",
     "us_aqi_mean_rollstd_7d"
   ],
-  "trained_at": "20260926T080643Z"
+  "trained_at": "20260927T084225Z"
 }
