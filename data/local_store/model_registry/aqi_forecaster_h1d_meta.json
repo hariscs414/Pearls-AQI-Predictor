@@ -1,11 +1,11 @@
 {
-  "version": "20261015T075017Z",
+  "version": "20261016T073953Z",
   "horizon_days": 1,
   "model_type": "ridge",
   "metrics": {
-    "rmse": 16.80762993650882,
-    "mae": 13.291112402050109,
-    "r2": 0.904549705988694
+    "rmse": 17.212647725772943,
+    "mae": 13.209098570679785,
+    "r2": 0.8963327695549854
   },
   "feature_columns": [
     "us_aqi_mean",
@@ -48,5 +48,5 @@
     "us_aqi_mean_rollstd_3d",
     "us_aqi_mean_rollstd_7d"
   ],
-  "trained_at": "20261015T075017Z"
+  "trained_at": "20261016T073953Z"
 }
